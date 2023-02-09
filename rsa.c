@@ -395,16 +395,11 @@ word dividesbyprimes(word p[], int length) {
 }
 
 #define D 4
+#define DWORDS (WORD_BITS/D)
 void powermod(word b[], word e[], word m[], int length, word r[]) {
-	word zeros[length];
-	initarray(zeros, length);
-
 	word bigm[2*length];
 	initarray(bigm, 2*length);
 	copyarr(m, bigm, length);
-
-	word eval[length];
-	copyarr(e, eval, length);
 
 	word precalc[14][length];
 	for (int i = 0; i < 14; i++) {
@@ -418,8 +413,7 @@ void powermod(word b[], word e[], word m[], int length, word r[]) {
 	r[0] = 1;
 
 	word w = 0;
-
-	while (greaterthan(eval, zeros, length)) {
+	for (int i = 0; i < length*DWORDS; i++) {
 		word mulr[2*length];
 
 		for (int i = 0; i < D; i++) {
@@ -428,14 +422,15 @@ void powermod(word b[], word e[], word m[], int length, word r[]) {
 			copyarr(mulr, r, length);
 		}
 
-		w = eval[length-1] >> (WORD_BITS-D);
+		int bshift = WORD_BITS - i%DWORDS*D - D;
+		int mask = 0b1111;
+		w = (e[length-1-i/DWORDS] >> bshift) & mask;
+
 		if (w != 0) {
 			multiply(r, (w == 1) ? b : precalc[w-2], length, mulr);
 			modulo(mulr, bigm, 2*length, mulr);
 			copyarr(mulr, r, length);
 		}
-		
-		lbshift(eval, length, D, eval);
 	}
 }
 
